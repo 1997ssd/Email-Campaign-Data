@@ -1,0 +1,110 @@
+import pandas as pd
+import numpy as nd
+import matplotlib.pyplot as plt
+
+df=pd.read_csv("Campaigns-Sep22-Aug22 - Campaigns-20220901-20220901.csv")
+
+#convert line 3 to header row
+df.columns = df.iloc[3]
+n=4
+df.drop(index=df.index[:n], axis=0, inplace=True)
+
+numeric_cols = ['Emails Delivered', 'Unique Opens', 'Open Rate', 'Unique Clicks', 'Click Rate', 'CTOR', 'Total Opens', 'Total Sent', 'Total Clicks', 'Total Bounces', 'Total Unsubscribes']
+df[numeric_cols] = df[numeric_cols].apply(pd.to_numeric)
+df.head(5)
+
+
+# In[46]:
+
+#New df to remove all of the campaigns which were just sent to one person
+df_2 = df[df['Total Sent'] != '1']
+
+top_three_campaings_by_open_rate = df_2[df_2['Open Rate']<100].nlargest(10, 'Open Rate')
+print('Below are the top 10 campaigns by Open Rate', top_three_campaings_by_open_rate[['Campaign', 'Open Rate']])
+
+df.shape
+
+bottom_ten_campaings_by_open_rate = df_2[df_2['Open Rate']>0].nsmallest(15, 'Open Rate')
+print('Below are the bottom 15 campaigns by Open Rate', bottom_ten_campaings_by_open_rate[['Campaign', 'Open Rate']])
+
+import matplotlib.pyplot as plt
+
+df['Date Sent'] = pd.to_datetime(df['Date Sent'], format='%a %d %b %Y')
+
+df['Month'] = df['Date Sent'].dt.month
+
+average_open_rate_by_month = df.groupby('Month')['Open Rate'].mean()
+
+# Define a dictionary to map month numbers to month names in the academic year order
+academic_month_names = {
+    9: 'September', 10: 'October', 11: 'November', 12: 'December',
+    1: 'January', 2: 'February', 3: 'March', 4: 'April', 5: 'May', 6: 'June',
+    7: 'July', 8: 'August'
+}
+
+# Sort the month numbers in academic year order
+sorted_months = sorted(average_open_rate_by_month.keys(), key=lambda x: (x - 9) % 12)
+
+# Create a Series with sorted data
+sorted_open_rates = pd.Series([average_open_rate_by_month[month_num] for month_num in sorted_months])
+
+# Set the figure size
+plt.figure(figsize=(10, 6))
+
+# Plot the line graph
+plt.plot(sorted_months, sorted_open_rates, marker='o')
+
+# Customize x-axis ticks with month names
+plt.xticks(sorted_months, [academic_month_names[month_num] for month_num in sorted_months], rotation=45)
+
+# Add labels and title
+plt.xlabel('Month')
+plt.ylabel('Average Open Rate')
+plt.title('Average Open Rate by Month')
+
+# Print the average open rate per month
+for month_num in sorted_months:
+    avg_open_rate = average_open_rate_by_month[month_num]
+    month_name = academic_month_names[month_num]
+    print(f"Average Open Rate for {month_name}: {avg_open_rate:.2f}")
+
+# Display the plot
+plt.tight_layout()
+plt.show()
+#plot is still prining in the wrong order
+
+# Convert the 'Date Sent' column to datetime if it's not already
+df['Date Sent'] = pd.to_datetime(df['Date Sent'], format='%a %d %b %Y')
+
+# Extract the day of the week from the 'Date Sent' column and create a new 'Day of Week' column
+df['Day of Week'] = df['Date Sent'].dt.dayofweek
+
+# Calculate the average open rate for each day of the week
+average_open_rate_by_day = df.groupby('Day of Week')['Open Rate'].mean()
+
+# Define day names
+day_names = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+
+# Set the figure size
+plt.figure(figsize=(10, 6))
+
+# Plot the bar graph
+plt.bar(day_names, average_open_rate_by_day)
+
+# Add labels and title
+plt.xlabel('Day of Week')
+plt.ylabel('Average Open Rate')
+plt.title('Average Open Rate by Day of Week')
+
+# Display the plot
+plt.tight_layout()
+plt.show()
+
+# Filter rows where 'Total Unsubscribes' is greater than 0 (loss of subscribers)
+loss_of_subscribers = df[df['Total Unsubscribes'] > 0]
+
+# Sort the DataFrame by 'Total Unsubscribes' in descending order
+sorted_loss_of_subscribers = loss_of_subscribers.sort_values(by='Total Unsubscribes', ascending=False)
+
+# Print the 'Campaign' and 'Total Unsubscribes' columns for the sorted rows
+print(sorted_loss_of_subscribers[['Campaign', 'Total Unsubscribes']].head(15))
